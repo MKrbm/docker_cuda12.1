@@ -25,8 +25,6 @@ ENV LC_ALL en_US.UTF-8
 ENV TZ=Asia/Tokyo
 ENV NVM_DIR /home/${USERNAME}/.nvm
 ENV NODE_VERSION 18
-ENV PATH=/home/${USERNAME}/miniconda3/bin:$PATH
-ENV PATH=/home/${USERNAME}/miniconda3/condabin:$PATH
 ENV DISPLAY host.docker.internal:0.0
 
 # Copy necessary scripts
@@ -55,16 +53,15 @@ RUN mkdir -p /var/run/sshd \
 
 USER ${USERNAME}
 
-RUN wget -P /home/${USERNAME} http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh \
-    && mkdir /home/${USERNAME}/.conda \
-    && bash /home/${USERNAME}/Miniconda3-latest-Linux-x86_64.sh -b -p /home/${USERNAME}/miniconda3 -u \
-    && rm /home/${USERNAME}/Miniconda3-latest-Linux-x86_64.sh \
-    && conda init \
-    && conda update -y conda
+# RUN wget -P /home/${USERNAME} http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh \
+#     && mkdir /home/${USERNAME}/.conda \
+#     && bash /home/${USERNAME}/Miniconda3-latest-Linux-x86_64.sh -b -p /home/${USERNAME}/miniconda3 -u \
+#     && rm /home/${USERNAME}/Miniconda3-latest-Linux-x86_64.sh \
+#     && conda init \
+#     && conda update -y conda
 
 
 # Download and run the NVM installation script
-RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
 
 # Add NVM to the user's bash profile
 RUN echo 'export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"' >> ~/.bashrc && \
@@ -77,7 +74,7 @@ WORKDIR /home/${USERNAME}
 # Set environment variables for runtime
 # Here, you can set any environment variables your application needs
 # For example, PATH adjustments or environment-specific variables
-ENV PATH="/home/${USERNAME}/miniconda3/bin:${PATH}"
+# ENV PATH="/home/${USERNAME}/miniconda3/bin:${PATH}"
 
 # Switch back to the created user for security
 # USER ${USERNAME}
@@ -86,6 +83,11 @@ RUN ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519
 
 # Reset user to root
 USER root
+
+# TODO: Need to be put in the right place
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+RUN apt-get -y install libffi-dev  
+
 
 # This is required to run sshd
 EXPOSE 22 
