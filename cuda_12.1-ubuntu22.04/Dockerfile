@@ -50,9 +50,18 @@ RUN mkdir -p /var/run/sshd \
 
 
 # Install Miniconda
+# TODO: Following codes must be rafaactored
+
+RUN apt install -y zsh
+ENV SHELL /bin/zsh
+ENV SHELL /bin/zsh
+RUN chsh -s /bin/zsh
+
+
 
 USER ${USERNAME}
 
+RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 # RUN wget -P /home/${USERNAME} http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh \
 #     && mkdir /home/${USERNAME}/.conda \
 #     && bash /home/${USERNAME}/Miniconda3-latest-Linux-x86_64.sh -b -p /home/${USERNAME}/miniconda3 -u \
@@ -63,9 +72,12 @@ USER ${USERNAME}
 
 # Download and run the NVM installation script
 
+
+
 # Add NVM to the user's bash profile
-RUN echo 'export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"' >> ~/.bashrc && \
-    echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> ~/.bashrc
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+RUN echo 'export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"' >> ~/.zshrc && \
+    echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> ~/.zshrc
 
 
 # Set the working directory to the user's home directory
@@ -85,21 +97,66 @@ RUN ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519
 USER root
 
 # TODO: Need to be put in the right place
-RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
 RUN apt-get -y install libffi-dev  
 
 
 # This is required to run sshd
 EXPOSE 22 
 
-COPY entrypoint.sh /entrypoint.sh
+
+USER ${USERNAME}	
+
+
+  # Append other configurations to the user's .bashrc
+# RUN echo "source /usr/share/bash-completion/completions/git" >> "/home/${USERNAME}/.bashrc"
+# RUN cat /tmp/terminal-colors-branch.sh >> "/home/${USERNAME}/.zshrc"
+RUN curl -fsSL https://install.julialang.org -o /tmp/install_julia.sh && \
+    sh /tmp/install_julia.sh -y && \
+    rm /tmp/install_julia.sh
+
+user root 
+
+RUN apt update && \
+    apt-get update && \
+    apt install -y curl git ripgrep tar unzip vim wget locales
+
+RUN wget https://github.com/neovim/neovim/releases/download/v0.10.0/nvim-linux64.tar.gz && \
+    tar -zxvf nvim-linux64.tar.gz && \
+    mv nvim-linux64/bin/nvim /usr/bin/nvim && \
+    mv nvim-linux64/lib/nvim /usr/lib/nvim && \
+    mv nvim-linux64/share/nvim/ /usr/share/nvim && \
+    rm -rf nvim-linux64 && \
+    rm nvim-linux64.tar.gz
+
+USER ${USERNAME}
+
+
+RUN curl https://pyenv.run | bash
+
+ENV PYENV_ROOT /home/${USERNAME}/.pyenv
+ENV PATH $PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
+
+RUN pyenv install 3.11
+RUN pyenv global 3.11
+
+
+
+RUN git clone https://github.com/MKrbm/MyNvim.git /home/${USERNAME}/.config/nvim
+
+RUN nvim --headless +qall
+
+USER root
+
+CMD ["/usr/bin/zsh"]
+
+
 
 # Ensure the entrypoint script is executable
-RUN chmod +x /entrypoint.sh
+# RUN chmod +x /entrypoint.sh
 
 # Set the entrypoint to initialize the environment
-ENTRYPOINT ["/entrypoint.sh", "/bin/sh", "-c"]
-CMD ["bash"]
+# ENTRYPOINT ["/entrypoint.sh", "/bin/sh", "-c"]
+# CMD ["bash"]
 
 # Be sure to use root user at the end of the dockerfile. 
 
